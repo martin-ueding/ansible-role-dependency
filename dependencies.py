@@ -5,6 +5,7 @@
 
 import argparse
 import os.path
+import subprocess
 
 import yaml
 
@@ -61,6 +62,12 @@ def main():
     print('\n'.join(output))
 
 
+    with open('role-dependencies.dot', 'w') as stream:
+        for line in output:
+            stream.write(line)
+
+    subprocess.check_call(['dot', '-Tpdf', '-o', 'role-dependencies.pdf', 'role-dependencies.dot'])
+    subprocess.check_call(['dot', '-Tsvg', '-o', 'role-dependencies.svg', 'role-dependencies.dot'])
 
                         
 
