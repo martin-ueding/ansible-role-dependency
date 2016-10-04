@@ -97,7 +97,8 @@ def main():
         for dependency in dependencies:
             output.append('"{}" -> "{}"'.format(role, dependency))
         
-        if len(dependencies) == 0:
+        if len(dependencies) == 0 and not \
+           any([role in d for r, d in list(tree.items()) + list(tree2.items())]):
             unused_roles.append(role)
             #output.append('"{}"'.format(role))
 
