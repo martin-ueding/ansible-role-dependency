@@ -4,10 +4,30 @@
 # Copyright © 2015-2016 Martin Ueding <dev@martin-ueding.de>
 
 import argparse
+import glob
 import os.path
 import subprocess
 
 import yaml
+
+def get_from_multiple(dependency):
+    name = dependency
+    try:
+        name = list(dependency.keys())[0]
+    except TypeError:
+        pass
+    except AttributeError:
+        pass
+
+    try:
+        name = dependency['role']
+    except TypeError:
+        pass
+    except KeyError:
+        pass
+
+    return name
+
 
 def get_dependencies(role):
     names = []
@@ -16,59 +36,75 @@ def get_dependencies(role):
         with open(meta) as stream:
             data = yaml.load(stream)
 
-            if data is None:
+        if data is None:
+            return names
+
+        if 'dependencies' in data:
+            dependencies = data['dependencies']
+
+            if dependencies is None:
                 return names
 
-            if 'dependencies' in data:
-                dependencies = data['dependencies']
+            for dependency in dependencies:
+                names.append(get_from_multiple(dependency))
 
-                if dependencies is None:
-                    return names
+    return names
 
-                for dependency in dependencies:
-                    name = dependency
 
-                    try:
-                        name = list(dependency.keys())[0]
-                    except TypeError:
-                        pass
-                    except AttributeError:
-                        pass
+def get_used_roles(playbook):
+    with open(playbook) as stream:
+        data = yaml.load(stream)
 
-                    try:
-                        name = dependency['role']
-                    except TypeError:
-                        pass
-                    except KeyError:
-                        pass
+    names = []
+    for task in data:
+        if not 'roles' in task:
+            continue
 
-                    names.append(name)
+        for role in task['roles']:
+            names.append(get_from_multiple(role))
 
+    print(names)
     return names
 
 
 def main():
     options = _parse_args()
 
+    pwd = os.getcwd()
+
     tree = {}
+    tree2 = {}
 
     os.chdir(options.dir)
 
     for role in os.listdir('roles'):
         tree[os.path.basename(role)] = get_dependencies(role)
 
+    for playbook in glob.glob('*.yml'):
+        base, ext = os.path.splitext(playbook)
+        tree2[base] = get_used_roles(playbook)
+
     output = []
 
-    output.append('digraph {')
+    output.append('''
+                  digraph {
+                  rankdir=LR
+                  ''')
 
     for role, dependencies in tree.items():
         for dependency in dependencies:
             output.append('"{}" -> "{}"'.format(role, dependency))
 
+    for playbook, dependencies in tree2.items():
+        output.append('"{}" [shape=rectangle]'.format(playbook))
+        for dependency in dependencies:
+            output.append('"{}" -> "{}"'.format(playbook, dependency))
+
     output.append( '}')
 
     print('\n'.join(output))
 
+    os.chdir(pwd)
 
     with open('role-dependencies.dot', 'w') as stream:
         for line in output:
