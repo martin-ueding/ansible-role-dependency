@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright © 2015 Martin Ueding <dev@martin-ueding.de>
+# Copyright © 2015-2016 Martin Ueding <dev@martin-ueding.de>
 
 import argparse
 import os.path
@@ -9,45 +9,53 @@ import subprocess
 
 import yaml
 
+def get_dependencies(role):
+    names = []
+    meta = os.path.join('roles/', role, 'meta', 'main.yml')
+    if os.path.isfile(meta):
+        with open(meta) as stream:
+            data = yaml.load(stream)
+
+            if data is None:
+                return names
+
+            if 'dependencies' in data:
+                dependencies = data['dependencies']
+
+                if dependencies is None:
+                    return names
+
+                for dependency in dependencies:
+                    name = dependency
+
+                    try:
+                        name = list(dependency.keys())[0]
+                    except TypeError:
+                        pass
+                    except AttributeError:
+                        pass
+
+                    try:
+                        name = dependency['role']
+                    except TypeError:
+                        pass
+                    except KeyError:
+                        pass
+
+                    names.append(name)
+
+    return names
+
+
 def main():
     options = _parse_args()
 
     tree = {}
 
-    for role in options.role:
-        meta = os.path.join(role, 'meta', 'main.yml')
-        if os.path.isfile(meta):
-            with open(meta) as stream:
-                data = yaml.load(stream)
+    os.chdir(options.dir)
 
-                if data is None:
-                    continue
-
-                if 'dependencies' in data:
-                    dependencies = data['dependencies']
-
-                    names = []
-
-                    for dependency in dependencies:
-                        name = dependency
-
-                        try:
-                            name = list(dependency.keys())[0]
-                        except TypeError:
-                            pass
-                        except AttributeError:
-                            pass
-
-                        try:
-                            name = dependency['role']
-                        except TypeError:
-                            pass
-                        except KeyError:
-                            pass
-
-                        names.append(name)
-
-                    tree[os.path.basename(role)] = names
+    for role in os.listdir('roles'):
+        tree[os.path.basename(role)] = get_dependencies(role)
 
     output = []
 
@@ -79,7 +87,7 @@ def _parse_args():
     :rtype: Namespace
     '''
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('role', nargs='+')
+    parser.add_argument('dir')
     options = parser.parse_args()
 
     return options
