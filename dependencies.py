@@ -91,9 +91,15 @@ def main():
                   rankdir=LR
                   ''')
 
+    unused_roles = []
+
     for role, dependencies in tree.items():
         for dependency in dependencies:
             output.append('"{}" -> "{}"'.format(role, dependency))
+        
+        if len(dependencies) == 0:
+            unused_roles.append(role)
+            #output.append('"{}"'.format(role))
 
     output.append("{ rank=same")
     for playbook, dependencies in tree2.items():
@@ -117,6 +123,10 @@ def main():
     subprocess.check_call(['dot', '-Tpdf', '-o', 'role-dependencies.pdf', 'role-dependencies.dot'])
     subprocess.check_call(['dot', '-Tsvg', '-o', 'role-dependencies.svg', 'role-dependencies.dot'])
 
+    if len(unused_roles) > 0:
+        print('Unused roles:')
+        for role in sorted(unused_roles):
+            print('- {}'.format(role))
                         
 
 def _parse_args():
