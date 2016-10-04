@@ -95,8 +95,12 @@ def main():
         for dependency in dependencies:
             output.append('"{}" -> "{}"'.format(role, dependency))
 
+    output.append("{ rank=same")
     for playbook, dependencies in tree2.items():
         output.append('"{}" [shape=rectangle]'.format(playbook))
+    output.append("}")
+
+    for playbook, dependencies in tree2.items():
         for dependency in dependencies:
             output.append('"{}" -> "{}"'.format(playbook, dependency))
 
