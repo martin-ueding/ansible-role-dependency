@@ -1,4 +1,4 @@
-.. Copyright © 2015-2017 Martin Ueding <dev@martin-ueding.de>
+.. Copyright © 2015-2017 Martin Ueding <martin-ueding.de>
 
 #######################
 ansible-role-dependency
